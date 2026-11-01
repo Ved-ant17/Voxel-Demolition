@@ -1,0 +1,46 @@
+# Dependencies (Huge folder - friends install via 'npm install')
+node_modules/
+package-lock.json.backup
+
+# Production Build Output (Generated automatically via 'npm run build')
+dist/
+dist-ssr/
+*.local
+
+# Environment variables & Secret Keys (CRITICAL: Never share API keys or credentials)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.cert
+credentials.json
+secrets.json
+token.json
+id_rsa
+id_rsa.pub
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+*.log
+
+# Editor & IDE directories
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS & Temp Files
+.DS_Store
+Thumbs.db
+desktop.ini
+*.tmp
+*.bak
+$RECYCLE.BIN/
