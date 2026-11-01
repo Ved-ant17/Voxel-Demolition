@@ -3,92 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voxel Demolition - Complete Simulation</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            user-select: none;
-        }
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #0a0a1a;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-        }
-        #gameCanvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-        #crosshair {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 8px;
-            height: 8px;
-            background-color: rgba(255, 255, 255, 0.8);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            box-shadow: 0 0 6px rgba(0, 255, 200, 0.8);
-        }
-        #instructionsOverlay {
-            position: absolute;
-            inset: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: rgba(10, 10, 26, 0.75);
-            backdrop-filter: blur(4px);
-            color: #ffffff;
-            cursor: pointer;
-            z-index: 100;
-            transition: opacity 0.2s ease;
-        }
-        .instruction-card {
-            background: rgba(22, 24, 45, 0.95);
-            border: 1px solid rgba(0, 255, 200, 0.4);
-            border-radius: 12px;
-            padding: 28px 40px;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
-            pointer-events: auto;
-        }
-        .instruction-card h2 {
-            margin: 0 0 12px 0;
-            font-size: 26px;
-            color: #00ffcc;
-            letter-spacing: 1px;
-        }
-        .instruction-card p {
-            margin: 8px 0;
-            font-size: 14px;
-            color: #c0c6e0;
-        }
-        .instruction-card .prompt {
-            margin-top: 18px;
-            display: inline-block;
-            padding: 12px 28px;
-            background: #00ffcc;
-            color: #0a0a1a;
-            font-weight: bold;
-            border-radius: 6px;
-            font-size: 15px;
-            border: none;
-            cursor: pointer;
-            transition: transform 0.1s ease, background 0.2s ease, box-shadow 0.2s ease;
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.4);
-        }
-        .instruction-card .prompt:hover {
-            background: #33ffdd;
-            transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(0, 255, 204, 0.7);
-        }
-        .instruction-card .prompt:active {
-            transform: scale(0.96);
-        }
-    </style>
+    <title>Voxel Demolition - 3D Skyscraper Demolition Simulator</title>
+    <link rel="stylesheet" href="/src/style.css">
     
     <!-- Import Maps allow fallback or direct browser ES6 module loading -->
     <script type="importmap">
@@ -102,17 +18,278 @@
     </script>
 </head>
 <body>
+    <!-- Center Aim Crosshair (with ADS Zoom ring) -->
     <div id="crosshair"></div>
-    <div id="instructionsOverlay">
-        <div class="instruction-card">
-            <h2>VOXEL DEMOLITION</h2>
-            <p><strong>Click anywhere to engage controls</strong></p>
-            <p><strong>WASD:</strong> Fly Forward / Left / Back / Right</p>
-            <p><strong>Space / Shift:</strong> Ascend / Descend</p>
-            <p><strong>Left Click:</strong> Fire Rocket</p>
-            <p><strong>Mouse:</strong> Aim / Look around</p>
-            <p><strong>ESC:</strong> Release mouse pointer</p>
-            <button id="playBtn" class="prompt">CLICK TO PLAY</button>
+
+    <!-- Real-time FPS Monitor (Top Right) -->
+    <div id="fpsCounter">
+        <span class="fps-dot"></span>
+        <strong id="fpsValue">60 FPS</strong>
+    </div>
+
+    <!-- In-Game Minimal HUD (visible during play) -->
+    <div id="inGameHUD">
+        <!-- Active Weapon Indicator Pill -->
+        <div class="hud-pill weapon-pill" id="hudWeaponPill">
+            <div class="weapon-info-wrap">
+                <strong id="hudWeaponName">Plasma Pistol</strong>
+                <span id="hudWeaponMeta">Semi • Blast: 1.8m</span>
+            </div>
+        </div>
+
+        <div class="hud-pill">
+            <span class="hud-label">Time:</span>
+            <strong id="hudTimeName">Night</strong>
+        </div>
+        <div class="hud-pill">
+            <span class="hud-label">Weather:</span>
+            <strong id="hudWeatherName">Clear</strong>
+        </div>
+        <div class="hud-pill">
+            <span class="hud-label">City:</span>
+            <span id="hudCityInfo">6×6 Blocks</span>
+        </div>
+        <div class="hud-pill highlight">
+            <span class="hud-label">Voxels:</span>
+            <strong id="hudVoxelCount">22,000 Voxels</strong>
+        </div>
+        <div class="hud-pill">
+            <span>Press <kbd>ESC</kbd> for Menu</span>
+        </div>
+    </div>
+
+    <!-- Bottom Weapon Quick Switch Bar -->
+    <div id="weaponBar">
+        <div class="weapon-slot active" data-slot="0">
+            <span class="slot-num">1</span>
+            <span class="slot-name">Pistol</span>
+        </div>
+        <div class="weapon-slot" data-slot="1">
+            <span class="slot-num">2</span>
+            <span class="slot-name">SMG</span>
+        </div>
+        <div class="weapon-slot" data-slot="2">
+            <span class="slot-num">3</span>
+            <span class="slot-name">Shotgun</span>
+        </div>
+        <div class="weapon-slot" data-slot="3">
+            <span class="slot-num">4</span>
+            <span class="slot-name">Railgun</span>
+        </div>
+        <div class="weapon-slot" data-slot="4">
+            <span class="slot-num">5</span>
+            <span class="slot-name">Missile</span>
+        </div>
+    </div>
+
+    <!-- Main Menu & Settings Modal -->
+    <div id="menuOverlay">
+        <div class="menu-card">
+
+            <!-- 1. MAIN MENU DASHBOARD -->
+            <div id="mainMenuView" class="sub-panel-view active">
+                <div class="menu-header">
+                    <h1>VOXEL DEMOLITION</h1>
+                    <p>Real-time WebGL Voxel Physics & Demolition Simulator</p>
+                </div>
+
+                <!-- Primary Action -->
+                <button id="playBtn" class="btn-play" style="font-size: 16px; padding: 15px;">▶ START SIMULATION</button>
+
+                <!-- Navigation List for Sub-Panels -->
+                <div class="menu-nav-list">
+                    <!-- City Size Button -->
+                    <button id="btnOpenCitySize" class="menu-nav-card" data-open="citySizeView">
+                        <div class="nav-info">
+                            <strong>City Spawning Size</strong>
+                            <span id="previewCityText">6×6 Grid (36 Skyscrapers)</span>
+                        </div>
+                        <div class="nav-arrow">›</div>
+                    </button>
+
+                    <!-- Time of Day Button -->
+                    <button id="btnOpenTime" class="menu-nav-card" data-open="timeOfDayView">
+                        <div class="nav-info">
+                            <strong>Time of Day & 360° Sky</strong>
+                            <span id="previewTimeText">Night Sky</span>
+                        </div>
+                        <div class="nav-arrow">›</div>
+                    </button>
+
+                    <!-- Weather Button -->
+                    <button id="btnOpenWeather" class="menu-nav-card" data-open="weatherView">
+                        <div class="nav-info">
+                            <strong>Atmosphere & Weather</strong>
+                            <span id="previewWeatherText">Clear Sky</span>
+                        </div>
+                        <div class="nav-arrow">›</div>
+                    </button>
+
+                    <!-- Controls Button -->
+                    <button id="btnOpenControls" class="menu-nav-card" data-open="controlsView">
+                        <div class="nav-info">
+                            <strong>Controls</strong>
+                            <span>Basic flight, aiming, shooting & shortcuts</span>
+                        </div>
+                        <div class="nav-arrow">›</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. CITY SIZE SUB-PANEL -->
+            <div id="citySizeView" class="sub-panel-view">
+                <div class="menu-header">
+                    <h1>CITY SPAWNING SIZE</h1>
+                    <p>Adjust city grid dimensions up to 200,000 Voxels</p>
+                </div>
+
+                <div class="panel-box">
+                    <div class="slider-container">
+                        <div class="slider-info">
+                            <span id="citySizeDisplay">6×6 Grid (36 Skyscraper Plots)</span>
+                            <span id="cityVoxelBadge" class="badge">~25,000 Voxels</span>
+                        </div>
+                        <input type="range" id="citySizeSlider" min="3" max="14" value="6" step="1">
+                        <div class="slider-ticks">
+                            <span>3×3 (Compact)</span>
+                            <span>6×6 (Default)</span>
+                            <span>10×10 (Downtown)</span>
+                            <span>14×14 (Mega 200K)</span>
+                        </div>
+                        <button id="regenCityBtn" class="btn-regen">Regenerate City with New Size</button>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button class="btn-back" data-back-to="mainMenuView">← BACK TO MENU</button>
+                    <button class="btn-play resume-action">▶ RESUME PLAYING</button>
+                </div>
+            </div>
+
+            <!-- 3. TIME OF DAY SUB-PANEL -->
+            <div id="timeOfDayView" class="sub-panel-view">
+                <div class="menu-header">
+                    <h1>TIME OF DAY & 360° SKIES</h1>
+                    <p>Select real-time skybox panorama and environmental lighting</p>
+                </div>
+
+                <div class="panel-box">
+                    <div class="time-buttons-grid">
+                        <button class="time-btn active" data-time="night">
+                            <span>Night</span>
+                        </button>
+                        <button class="time-btn" data-time="sunset">
+                            <span>Sunset</span>
+                        </button>
+                        <button class="time-btn" data-time="day">
+                            <span>Day</span>
+                        </button>
+                        <button class="time-btn" data-time="cyberpunk">
+                            <span>Cyberpunk</span>
+                        </button>
+                        <button class="time-btn" data-time="space">
+                            <span>Space</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button class="btn-back" data-back-to="mainMenuView">← BACK TO MENU</button>
+                    <button class="btn-play resume-action">▶ RESUME PLAYING</button>
+                </div>
+            </div>
+
+            <!-- 4. WEATHER & ATMOSPHERE SUB-PANEL -->
+            <div id="weatherView" class="sub-panel-view">
+                <div class="menu-header">
+                    <h1>WEATHER & ATMOSPHERE</h1>
+                    <p>Select environmental particles and atmospheric conditions</p>
+                </div>
+
+                <div class="panel-box">
+                    <div class="weather-buttons-grid">
+                        <button class="weather-btn active" data-weather="clear">
+                            <strong>Clear Sky</strong>
+                            <small>Calm, clear city flight</small>
+                        </button>
+                        <button class="weather-btn" data-weather="storm">
+                            <strong>Thunderstorm & Rain</strong>
+                            <small>Rain, misty fog & lightning</small>
+                        </button>
+                        <button class="weather-btn" data-weather="fog">
+                            <strong>Heavy Smog Fog</strong>
+                            <small>Dense atmospheric haze</small>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button class="btn-back" data-back-to="mainMenuView">← BACK TO MENU</button>
+                    <button class="btn-play resume-action">▶ RESUME PLAYING</button>
+                </div>
+            </div>
+
+            <!-- 5. CONTROLS SUB-PANEL -->
+            <div id="controlsView" class="sub-panel-view">
+                <div class="menu-header">
+                    <h1>CONTROLS</h1>
+                    <p>Basic keyboard and mouse controls</p>
+                </div>
+
+                <div class="panel-box">
+                    <div class="controls-list">
+                        <!-- Flight Movement -->
+                        <div class="control-item">
+                            <span class="control-label">Fly Forward / Backward</span>
+                            <div class="control-keys"><kbd>W</kbd> <kbd>S</kbd></div>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Strafe Left / Right</span>
+                            <div class="control-keys"><kbd>A</kbd> <kbd>D</kbd></div>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Ascend (Fly Up)</span>
+                            <div class="control-keys"><kbd>SPACE</kbd></div>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Descend (Fly Down)</span>
+                            <div class="control-keys"><kbd>SHIFT</kbd></div>
+                        </div>
+
+                        <!-- Look & Aim -->
+                        <div class="control-item">
+                            <span class="control-label">Look / Turn</span>
+                            <div class="control-keys"><kbd>MOUSE</kbd></div>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Aim Down Sights (Zoom)</span>
+                            <div class="control-keys"><kbd>HOLD RIGHT CLICK</kbd></div>
+                        </div>
+
+                        <!-- Weapons & Shooting -->
+                        <div class="control-item">
+                            <span class="control-label">Fire Weapon</span>
+                            <div class="control-keys"><kbd>LEFT CLICK</kbd></div>
+                        </div>
+                        <div class="control-item">
+                            <span class="control-label">Switch Gun</span>
+                            <div class="control-keys"><kbd>SCROLL WHEEL</kbd> or <kbd>1</kbd>–<kbd>5</kbd></div>
+                        </div>
+
+                        <!-- System -->
+                        <div class="control-item">
+                            <span class="control-label">Pause / Menu</span>
+                            <div class="control-keys"><kbd>ESC</kbd></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-row">
+                    <button class="btn-back" data-back-to="mainMenuView">← BACK TO MENU</button>
+                    <button class="btn-play resume-action">▶ RESUME PLAYING</button>
+                </div>
+            </div>
+
         </div>
     </div>
 

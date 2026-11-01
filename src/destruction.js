@@ -39,8 +39,8 @@ export function triggerExplosion(impactPoint, blastRadius, city, world, scene, d
 
     if (affectedVoxels.length === 0) return;
 
-    // Cap debris spawn per single explosion to maintain high performance
-    const maxSpawnPerHit = 60;
+    // Cap debris spawn per single explosion scaled with blast radius
+    const maxSpawnPerHit = Math.min(85, Math.max(10, Math.round(blastRadius * 10)));
     const voxelsToProcess = affectedVoxels.slice(0, maxSpawnPerHit);
 
     for (let i = 0; i < voxelsToProcess.length; i++) {
@@ -82,12 +82,13 @@ export function triggerExplosion(impactPoint, blastRadius, city, world, scene, d
 
         // Direction vector with an upward lift bias for explosive arcs
         const dirX = dx / distance;
-        const dirY = (dy / distance) + 0.35;
+        const dirY = (dy / distance) + (blastRadius > 5.0 ? 0.45 : 0.30);
         const dirZ = dz / distance;
 
-        // Force decreases with distance from detonation center
+        // Force scales with blast radius: Missiles trigger violent shockwave, pistols pop fragments
         const distanceRatio = Math.max(0.2, 1 - (distance / blastRadius));
-        const impulseMagnitude = (7.0 + Math.random() * 8.0) * distanceRatio;
+        const baseForce = blastRadius > 5.0 ? 16.0 : (blastRadius > 3.0 ? 10.0 : 6.0);
+        const impulseMagnitude = (baseForce + Math.random() * (baseForce * 0.9)) * distanceRatio;
 
         const impulse = new CANNON.Vec3(
             dirX * impulseMagnitude,
@@ -133,6 +134,15 @@ function removeDebrisItem(index, world, scene) {
     scene.remove(item.mesh);
     item.mesh.material.dispose();
     activeDebris.splice(index, 1);
+}
+
+/**
+ * Clears all active debris bodies and meshes from the world
+ */
+export function clearAllDebris(world, scene) {
+    while (activeDebris.length > 0) {
+        removeDebrisItem(0, world, scene);
+    }
 }
 
 /**

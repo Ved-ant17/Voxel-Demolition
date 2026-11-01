@@ -11,9 +11,9 @@ export const VOXEL_SIZE = 1;
  * Stores voxel metadata (position, color, buildingId, active state) and provides
  * a fast spatial hash grid for instantaneous radius queries during destruction.
  */
-export function createCity(scene) {
-    // City grid configuration
-    const gridBlocks = 6;      // 6x6 grid of building plots (36 buildings)
+export function createCity(scene, gridSize = 6) {
+    // City grid configuration - supports up to 14x14 (~200,000 voxels max)
+    const gridBlocks = Math.max(3, Math.min(14, Math.floor(gridSize)));
     const plotSpacing = 16;     // Distance between center of building plots (streets)
     const startX = -((gridBlocks - 1) * plotSpacing) / 2;
     const startZ = -((gridBlocks - 1) * plotSpacing) / 2;
@@ -38,8 +38,8 @@ export function createCity(scene) {
     const rawVoxelList = [];
     let buildingCounter = 0;
 
-    // Spatial hash grid (cellSize = 4 units) for microsecond blast radius lookups
-    const cellSize = 4;
+    // Spatial hash grid (cellSize = 6 units) for microsecond blast radius lookups up to 200k voxels
+    const cellSize = 6;
     const spatialGrid = new Map();
 
     function getCellKey(cx, cy, cz) {
@@ -68,15 +68,15 @@ export function createCity(scene) {
 
             // Height variation: taller skyscrapers closer to downtown center
             const distFromCenter = Math.hypot(centerX, centerZ);
-            const maxCenterDist = Math.hypot(startX, startZ);
+            const maxCenterDist = Math.hypot(startX, startZ) || 1;
             const centerWeight = 1 - Math.min(1, distFromCenter / maxCenterDist);
 
-            // Building footprint
-            const width = Math.floor(5 + Math.random() * 4); // 5 to 8 voxels wide
-            const depth = Math.floor(5 + Math.random() * 4); // 5 to 8 voxels deep
-            const minH = 12 + Math.floor(centerWeight * 10);
-            const maxH = 24 + Math.floor(centerWeight * 18);
-            const height = Math.floor(minH + Math.random() * (maxH - minH)); // 12 to 42 voxels tall
+            // Building footprint scales with downtown density
+            const width = Math.floor(5 + Math.random() * 4 + (centerWeight > 0.6 ? 1 : 0));
+            const depth = Math.floor(5 + Math.random() * 4 + (centerWeight > 0.6 ? 1 : 0));
+            const minH = 12 + Math.floor(centerWeight * 14);
+            const maxH = 26 + Math.floor(centerWeight * 26);
+            const height = Math.floor(minH + Math.random() * (maxH - minH)); // 12 to 52 voxels tall
 
             const bldgBaseColor = baseColors[Math.floor(Math.random() * baseColors.length)];
 
@@ -215,12 +215,23 @@ export function createCity(scene) {
         instancedMesh.setMatrixAt(index, zeroMatrix);
     }
 
+    function dispose() {
+        if (scene && instancedMesh) {
+            scene.remove(instancedMesh);
+        }
+        if (instancedMesh.geometry) instancedMesh.geometry.dispose();
+        if (instancedMesh.material) instancedMesh.material.dispose();
+    }
+
     return {
         instancedMesh,
         voxelData: rawVoxelList,
         totalVoxels,
+        gridBlocks,
+        buildingCount: buildingCounter,
         dummy,
         getVoxelsInRadius,
-        hideVoxel
+        hideVoxel,
+        dispose
     };
 }
