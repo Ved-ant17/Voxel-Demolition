@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { isAiming } from './controls.js';
+import { playWeaponSound, playExplosionSound } from './audio.js';
 
 // --- 1. WEAPON ARSENAL SPECIFICATIONS ---
 export const WEAPON_TYPES = [
@@ -395,6 +396,9 @@ export function fireActiveWeapon(camera, scene) {
         muzzleLight.intensity = 4.5;
     }
 
+    // Play weapon fire sound effect
+    playWeaponSound(weapon.id);
+
     // Get camera aim direction
     camera.getWorldDirection(cameraDirection);
     cameraDirection.normalize();
@@ -475,6 +479,9 @@ export function fireActiveWeapon(camera, scene) {
  * and high-intensity blast light for the missile launcher.
  */
 function triggerMissileBoom(position, scene) {
+    // 0. Play punchy missile explosive detonation sound
+    playExplosionSound();
+
     // 1. Dynamic Shockwave Blast Light
     const blastLight = new THREE.PointLight(0xff5500, 24, 45);
     blastLight.position.copy(position);

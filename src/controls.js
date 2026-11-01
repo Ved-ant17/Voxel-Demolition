@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { setMenuMode, resumeAudio } from './audio.js';
 
 // Track active movement keys
 const keys = {
@@ -76,6 +77,10 @@ export function enterGame() {
     if (overlay) overlay.style.display = 'none';
     if (hud) hud.style.display = 'flex';
 
+    // Playing state: duck background music and ensure audio is started
+    setMenuMode(false);
+    resumeAudio();
+
     lockPointer();
 }
 
@@ -145,6 +150,7 @@ export function setupControls(canvas) {
         if (currentlyLocked) {
             if (overlay) overlay.style.display = 'none';
             if (hud) hud.style.display = 'flex';
+            setMenuMode(false); // PLAYING: background music volume decreases
         } else if (gameStarted) {
             // When user releases pointer with ESC, reset zoom and show menu
             isAiming = false;
@@ -153,6 +159,7 @@ export function setupControls(canvas) {
             if (overlay) overlay.style.display = 'flex';
             if (hud) hud.style.display = 'none';
             if (playBtn) playBtn.textContent = '▶ RESUME SIMULATION';
+            setMenuMode(true); // MENU OPEN: background music volume increases
         }
     });
 
@@ -208,6 +215,14 @@ export function setupControls(canvas) {
             case 'ShiftLeft':
             case 'ShiftRight':
                 keys.down = true;
+                break;
+            case 'KeyM':
+                // Press 'M' to toggle between in-game and menu overlay
+                if (isLocked) {
+                    document.exitPointerLock();
+                } else {
+                    enterGame();
+                }
                 break;
         }
     });

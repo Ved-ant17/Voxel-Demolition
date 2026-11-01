@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { setWeatherAudio } from './audio.js';
 
 let currentScene = null;
 let activeWeather = 'clear'; // 'clear' | 'storm' | 'fog'
@@ -86,6 +87,9 @@ export function setWeather(weatherType) {
     if (!WEATHER_TYPES[weatherType] || !currentScene) return;
 
     activeWeather = weatherType;
+
+    // Trigger rain audio state
+    setWeatherAudio(weatherType);
 
     // Enable rain particles for Thunderstorm
     if (rainPoints) {

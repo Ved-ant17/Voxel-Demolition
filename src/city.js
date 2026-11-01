@@ -137,6 +137,23 @@ export function createCity(scene, gridSize = 6) {
         metalness: 0.18
     });
 
+    // Make colored neon window blocks bright always (vibrant, self-illuminating glow)
+    material.onBeforeCompile = (shader) => {
+        shader.fragmentShader = shader.fragmentShader.replace(
+            '#include <emissivemap_fragment>',
+            `
+            #include <emissivemap_fragment>
+            #if defined( USE_COLOR )
+                // Colored window blocks in the building are bright always (self-illuminating neon)
+                float maxCh = max(vColor.r, max(vColor.g, vColor.b));
+                if (maxCh > 0.60) {
+                    totalEmissiveRadiance += vColor.rgb * 2.0;
+                }
+            #endif
+            `
+        );
+    };
+
     const instancedMesh = new THREE.InstancedMesh(geometry, material, totalVoxels);
     instancedMesh.castShadow = true;
     instancedMesh.receiveShadow = true;

@@ -39,23 +39,51 @@ export function triggerExplosion(impactPoint, blastRadius, city, world, scene, d
 
     if (affectedVoxels.length === 0) return;
 
-    // Cap debris spawn per single explosion scaled with blast radius
+    // 2. Hide all voxels within blast radius from the InstancedMesh (leaves persistent 3D crater)
+    for (let i = 0; i < affectedVoxels.length; i++) {
+        city.hideVoxel(affectedVoxels[i].index);
+    }
+
+    // Dull nearby glowing windows around the crater rim (shockwave knocks out window power)
+    const rimVoxels = city.getVoxelsInRadius(impactPoint, blastRadius * 1.35);
+    let rimColorUpdated = false;
+    for (let r = 0; r < rimVoxels.length; r++) {
+        const rimVoxel = rimVoxels[r];
+        if (rimVoxel.active && rimVoxel.isWindow && !rimVoxel.isDull) {
+            rimVoxel.isDull = true;
+            const dulledTone = rimVoxel.color.clone().multiplyScalar(0.24);
+            city.instancedMesh.setColorAt(rimVoxel.index, dulledTone);
+            rimVoxel.color = dulledTone;
+            rimColorUpdated = true;
+        }
+    }
+    if (rimColorUpdated && city.instancedMesh.instanceColor) {
+        city.instancedMesh.instanceColor.needsUpdate = true;
+    }
+
+    // Cap debris spawn per single explosion scaled with blast radius to maintain 60 FPS
     const maxSpawnPerHit = Math.min(85, Math.max(10, Math.round(blastRadius * 10)));
     const voxelsToProcess = affectedVoxels.slice(0, maxSpawnPerHit);
 
     for (let i = 0; i < voxelsToProcess.length; i++) {
         const voxel = voxelsToProcess[i];
 
-        // 2. Hide static instance from InstancedMesh (leaves persistent crater)
-        city.hideVoxel(voxel.index);
-
         // 3. Create standalone dynamic Three.js debris mesh
+        // When shot by user, debris becomes DULL: power extinguished, shattered, dark & unlit
+        const dullColor = voxel.color.clone();
+        if (voxel.isWindow) {
+            // Shattered, dead window: desaturate and darken to dull shattered glass rubble
+            dullColor.multiplyScalar(0.24);
+        } else {
+            dullColor.multiplyScalar(0.55); // Scorched concrete rubble
+        }
+
         const debrisMat = new THREE.MeshStandardMaterial({
-            color: voxel.color,
-            roughness: 0.7,
-            metalness: 0.2,
-            emissive: voxel.isWindow ? voxel.color : 0x000000,
-            emissiveIntensity: voxel.isWindow ? 1.8 : 0.0
+            color: dullColor,
+            roughness: 0.92, // Matte, non-reflective dull rubble
+            metalness: 0.05,
+            emissive: 0x000000, // Zero glow / dull when shot
+            emissiveIntensity: 0.0
         });
 
         const debrisMesh = new THREE.Mesh(debrisBoxGeometry, debrisMat);

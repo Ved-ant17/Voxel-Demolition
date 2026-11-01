@@ -16,6 +16,7 @@ import { initPhysics, updatePhysics } from './physics.js';
 import { triggerExplosion, updateDestruction, clearAllDebris } from './destruction.js';
 import { initWeather, setWeather, updateWeather, getActiveWeather, WEATHER_TYPES } from './weather.js';
 import { updateDistantCitySize } from './distantCity.js';
+import { initAudio, updateAudio, setMenuMode } from './audio.js';
 
 // --- 1. CORE SETUP ---
 const canvas = document.getElementById('gameCanvas');
@@ -45,6 +46,10 @@ scene.add(camera);
 
 // Initialize First-Person 3D Gun Viewmodels, Arsenal & Particle FX
 initWeapons(camera, scene);
+
+// Initialize Complete Audio System (Weapons, Explosions, Dynamic BGM, Weather Rain)
+initAudio();
+setMenuMode(true);
 
 // Initialize Cannon-es Physics World (Standard downward gravity, ground collider, contact materials)
 export const { world, debrisMaterial } = initPhysics();
@@ -360,6 +365,9 @@ function animate() {
 
     // 0. Update Real-time FPS Monitor
     updateFPS();
+
+    // Update dynamic audio transitions (BGM ducking & Rain fading)
+    updateAudio(deltaTime);
 
     // 1. Update First-Person Flying Controls & ADS Zoom
     updateControls(camera, deltaTime);
