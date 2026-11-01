@@ -44,3 +44,6 @@ desktop.ini
 *.tmp
 *.bak
 $RECYCLE.BIN/
+
+# Private documentation & instructions
+instructions/
